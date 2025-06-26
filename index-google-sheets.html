@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hệ Thống Lấy Số - Google Sheets</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <!-- Login Form -->
+        <div id="loginForm" class="form-container">
+            <div class="form-box">
+                <h2><i class="fas fa-user-circle"></i> Đăng Nhập</h2>
+                <div id="connectionStatus" class="connection-status">
+                    <i class="fas fa-spinner fa-spin"></i> Đang kết nối với Google Sheets...
+                </div>
+                <form id="login">
+                    <div class="input-group">
+                        <i class="fas fa-user"></i>
+                        <input type="text" id="username" placeholder="Tên đăng nhập" required>
+                    </div>
+                    <div class="input-group">
+                        <i class="fas fa-lock"></i>
+                        <input type="password" id="password" placeholder="Mật khẩu" required>
+                    </div>
+                    <button type="submit" class="btn-primary">Đăng Nhập</button>
+                </form>
+                <div class="admin-link">
+                    <a href="#" onclick="showAdminLogin()">Đăng nhập Admin</a>
+                </div>
+            </div>
+        </div>
+
+        <!-- User Dashboard -->
+        <div id="userDashboard" class="dashboard hidden">
+            <header class="dashboard-header">
+                <h1><i class="fas fa-ticket-alt"></i> Hệ Thống Lấy Số</h1>
+                <div class="user-info">
+                    <span id="userDisplayName"></span>
+                    <button onclick="logout()" class="btn-logout">
+                        <i class="fas fa-sign-out-alt"></i> Đăng xuất
+                    </button>
+                </div>
+            </header>
+
+            <div class="main-content">
+                <div class="number-section">
+                    <h2>Lấy Số Mới</h2>
+                    <div class="number-form">
+                        <div class="input-group">
+                            <label for="content">Nội dung lấy số:</label>
+                            <textarea id="content" placeholder="Nhập nội dung cần lấy số..." rows="3"></textarea>
+                        </div>
+                        <button onclick="getNumber()" class="btn-get-number">
+                            <i class="fas fa-plus"></i> Lấy Số
+                        </button>
+                    </div>
+                </div>
+
+                <div class="current-number-section">
+                    <h2>Số Hiện Tại</h2>
+                    <div id="currentNumber" class="number-display">
+                        <span class="number">--</span>
+                    </div>
+                    <div id="numberInfo" class="number-info hidden">
+                        <p><strong>Nội dung:</strong> <span id="numberContent"></span></p>
+                        <p><strong>Thời gian:</strong> <span id="numberTime"></span></p>
+                    </div>
+                </div>
+
+                <div class="history-section">
+                    <h2>Lịch Sử Lấy Số</h2>
+                    <div id="numberHistory" class="history-list">
+                        <!-- History items will be populated here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Admin Login -->
+        <div id="adminLoginForm" class="form-container hidden">
+            <div class="form-box">
+                <h2><i class="fas fa-user-shield"></i> Đăng Nhập Admin</h2>
+                <form id="adminLogin">
+                    <div class="input-group">
+                        <i class="fas fa-user"></i>
+                        <input type="text" id="adminUsername" placeholder="Tên đăng nhập Admin" required>
+                    </div>
+                    <div class="input-group">
+                        <i class="fas fa-lock"></i>
+                        <input type="password" id="adminPassword" placeholder="Mật khẩu Admin" required>
+                    </div>
+                    <button type="submit" class="btn-primary">Đăng Nhập Admin</button>
+                </form>
+                <div class="back-link">
+                    <a href="#" onclick="showUserLogin()">Quay lại đăng nhập người dùng</a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Admin Dashboard -->
+        <div id="adminDashboard" class="dashboard hidden">
+            <header class="dashboard-header">
+                <h1><i class="fas fa-cogs"></i> Quản Trị Hệ Thống</h1>
+                <div class="user-info">
+                    <span>Admin</span>
+                    <button onclick="logout()" class="btn-logout">
+                        <i class="fas fa-sign-out-alt"></i> Đăng xuất
+                    </button>
+                </div>
+            </header>
+
+            <div class="admin-content">
+                <div class="admin-section">
+                    <h2>Cấu Hình Số</h2>
+                    <div class="config-form">
+                        <div class="input-group">
+                            <label for="startNumber">Số bắt đầu:</label>
+                            <input type="number" id="startNumber" placeholder="Nhập số bắt đầu" min="1" step="1">
+                        </div>
+                        <button type="button" onclick="updateStartNumber()" class="btn-primary">
+                            <i class="fas fa-save"></i> Cập Nhật
+                        </button>
+                    </div>
+                    <div class="current-config">
+                        <p><strong>Số hiện tại:</strong> <span id="currentConfigNumber">--</span></p>
+                    </div>
+                </div>
+
+                <div class="admin-section">
+                    <h2>Quản Lý Tài Khoản</h2>
+                    <div class="user-management">
+                        <button onclick="showAddUserForm()" class="btn-primary">
+                            <i class="fas fa-user-plus"></i> Thêm Người Dùng
+                        </button>
+                        <button onclick="exportUserData()" class="btn-secondary">
+                            <i class="fas fa-download"></i> Xuất Danh Sách Người Dùng
+                        </button>
+                    </div>
+                    <div id="userList" class="user-list">
+                        <!-- User list will be populated here -->
+                    </div>
+                </div>
+
+                <div class="admin-section">
+                    <h2>Quản Lý Lấy Số</h2>
+                    <div class="number-management">
+                        <button onclick="exportNumberData()" class="btn-secondary">
+                            <i class="fas fa-file-excel"></i> Xuất Danh Sách Lấy Số
+                        </button>
+                        <button onclick="refreshData()" class="btn-secondary">
+                            <i class="fas fa-sync-alt"></i> Làm Mới Dữ Liệu
+                        </button>
+                    </div>
+                    <div id="allNumberHistory" class="number-list">
+                        <!-- All number history will be populated here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Add User Modal -->
+        <div id="addUserModal" class="modal hidden">
+            <div class="modal-content">
+                <span class="close" onclick="closeAddUserModal()">&times;</span>
+                <h2>Thêm Người Dùng Mới</h2>
+                <form id="addUserForm">
+                    <div class="input-group">
+                        <label for="newUserName">Họ và tên:</label>
+                        <input type="text" id="newUserName" required>
+                    </div>
+                    <div class="input-group">
+                        <label for="newUserUsername">Tên đăng nhập:</label>
+                        <input type="text" id="newUserUsername" required>
+                    </div>
+                    <div class="input-group">
+                        <label for="newUserPassword">Mật khẩu:</label>
+                        <input type="password" id="newUserPassword" required>
+                    </div>
+                    <button type="submit" class="btn-primary">Thêm Người Dùng</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="script-google-sheets.js"></script>
+</body>
+</html> 

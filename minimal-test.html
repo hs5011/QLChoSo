@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Minimal Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .test-box {
+            background: #f8f9fa;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+            border: 1px solid #dee2e6;
+        }
+        input[type="text"] {
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+            font-size: 14px;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        .result {
+            margin-top: 15px;
+            padding: 15px;
+            border-radius: 4px;
+            font-family: monospace;
+            white-space: pre-wrap;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .success { background: #d4edda; border: 1px solid #c3e6cb; color: #155724; }
+        .error { background: #f8d7da; border: 1px solid #f5c6cb; color: #721c24; }
+        .info { background: #d1ecf1; border: 1px solid #bee5eb; color: #0c5460; }
+    </style>
+</head>
+<body>
+    <h1>🧪 Minimal Test</h1>
+    
+    <div class="test-box">
+        <h3>Test Google Apps Script</h3>
+        <input type="text" id="webAppUrl" placeholder="https://script.google.com/macros/s/.../exec">
+        <br>
+        <button onclick="testGet()">Test GET</button>
+        <button onclick="testPost()">Test POST</button>
+        <button onclick="testPostSimple()">Test POST Simple</button>
+        <div id="result" class="result info">Nhập URL và test...</div>
+    </div>
+
+    <div class="test-box">
+        <h3>Hướng dẫn:</h3>
+        <ol>
+            <li>Copy code từ <code>minimal-google-apps-script.js</code> vào Google Apps Script</li>
+            <li>Deploy lại Web App với quyền "Anyone"</li>
+            <li>Test từng bước: GET → POST → POST Simple</li>
+        </ol>
+    </div>
+
+    <script>
+        function showResult(message, type) {
+            const result = document.getElementById('result');
+            result.textContent = message;
+            result.className = 'result ' + type;
+        }
+
+        async function testGet() {
+            const url = document.getElementById('webAppUrl').value;
+            if (!url) {
+                showResult('❌ Vui lòng nhập URL', 'error');
+                return;
+            }
+
+            showResult('🔄 Testing GET...', 'info');
+
+            try {
+                const response = await fetch(url, {
+                    method: 'GET'
+                });
+
+                const text = await response.text();
+                console.log('GET Response:', text);
+
+                try {
+                    const json = JSON.parse(text);
+                    showResult('✅ GET Success:\n' + JSON.stringify(json, null, 2), 'success');
+                } catch (e) {
+                    showResult('⚠️ GET Response (not JSON):\n' + text, 'error');
+                }
+            } catch (error) {
+                showResult('❌ GET Error:\n' + error.message, 'error');
+            }
+        }
+
+        async function testPost() {
+            const url = document.getElementById('webAppUrl').value;
+            if (!url) {
+                showResult('❌ Vui lòng nhập URL', 'error');
+                return;
+            }
+
+            showResult('🔄 Testing POST...', 'info');
+
+            try {
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        action: 'test'
+                    })
+                });
+
+                const text = await response.text();
+                console.log('POST Response:', text);
+
+                try {
+                    const json = JSON.parse(text);
+                    showResult('✅ POST Success:\n' + JSON.stringify(json, null, 2), 'success');
+                } catch (e) {
+                    showResult('⚠️ POST Response (not JSON):\n' + text, 'error');
+                }
+            } catch (error) {
+                showResult('❌ POST Error:\n' + error.message, 'error');
+            }
+        }
+
+        async function testPostSimple() {
+            const url = document.getElementById('webAppUrl').value;
+            if (!url) {
+                showResult('❌ Vui lòng nhập URL', 'error');
+                return;
+            }
+
+            showResult('🔄 Testing POST Simple...', 'info');
+
+            try {
+                const response = await fetch(url, {
+                    method: 'POST',
+                    body: 'test'
+                });
+
+                const text = await response.text();
+                console.log('POST Simple Response:', text);
+
+                try {
+                    const json = JSON.parse(text);
+                    showResult('✅ POST Simple Success:\n' + JSON.stringify(json, null, 2), 'success');
+                } catch (e) {
+                    showResult('⚠️ POST Simple Response (not JSON):\n' + text, 'error');
+                }
+            } catch (error) {
+                showResult('❌ POST Simple Error:\n' + error.message, 'error');
+            }
+        }
+    </script>
+</body>
+</html> 

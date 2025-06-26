@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug Google Sheets API</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .debug-section {
+            background: #f8f9fa;
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 5px;
+            border: 1px solid #dee2e6;
+        }
+        input[type="text"] {
+            width: 100%;
+            padding: 8px;
+            margin: 5px 0;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        .result {
+            margin-top: 10px;
+            padding: 10px;
+            border-radius: 4px;
+            font-family: monospace;
+            white-space: pre-wrap;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .success {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+        .error {
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+        .info {
+            background: #d1ecf1;
+            border: 1px solid #bee5eb;
+            color: #0c5460;
+        }
+    </style>
+</head>
+<body>
+    <h1>🐛 Debug Google Sheets API</h1>
+    
+    <div class="debug-section">
+        <h3>1. Nhập URL Web App của bạn:</h3>
+        <input type="text" id="webAppUrl" placeholder="https://script.google.com/macros/s/.../exec">
+        <button onclick="testBasicConnection()">Test Kết Nối Cơ Bản</button>
+        <div id="basicResult" class="result"></div>
+    </div>
+
+    <div class="debug-section">
+        <h3>2. Test API Calls:</h3>
+        <button onclick="testGetUsers()">Test getUsers</button>
+        <button onclick="testGetConfig()">Test getConfig</button>
+        <button onclick="testGetNumbers()">Test getNumbers</button>
+        <div id="apiResult" class="result"></div>
+    </div>
+
+    <div class="debug-section">
+        <h3>3. Thông tin Debug:</h3>
+        <div id="debugInfo" class="result info">
+            Chưa có thông tin debug. Hãy test kết nối trước.
+        </div>
+    </div>
+
+    <script>
+        let currentUrl = '';
+
+        function showResult(elementId, message, type) {
+            const element = document.getElementById(elementId);
+            element.textContent = message;
+            element.className = 'result ' + type;
+        }
+
+        function testBasicConnection() {
+            const url = document.getElementById('webAppUrl').value;
+            if (!url) {
+                showResult('basicResult', '❌ Vui lòng nhập URL Web App', 'error');
+                return;
+            }
+
+            currentUrl = url;
+            showResult('basicResult', '🔄 Đang test kết nối...', 'info');
+
+            // Test GET request
+            fetch(url, {
+                method: 'GET'
+            })
+            .then(response => {
+                console.log('Response status:', response.status);
+                console.log('Response headers:', response.headers);
+                return response.text();
+            })
+            .then(data => {
+                console.log('Response data:', data);
+                
+                try {
+                    const json = JSON.parse(data);
+                    if (json.status === 'success') {
+                        showResult('basicResult', '✅ Kết nối thành công!\n\nResponse:\n' + JSON.stringify(json, null, 2), 'success');
+                        updateDebugInfo('GET request thành công', json);
+                    } else {
+                        showResult('basicResult', '⚠️ Kết nối được nhưng có lỗi:\n\nResponse:\n' + JSON.stringify(json, null, 2), 'error');
+                        updateDebugInfo('GET request có lỗi', json);
+                    }
+                } catch (e) {
+                    showResult('basicResult', '⚠️ Kết nối được nhưng response không phải JSON:\n\nResponse:\n' + data, 'error');
+                    updateDebugInfo('GET request - không phải JSON', data);
+                }
+            })
+            .catch(error => {
+                console.error('Fetch error:', error);
+                showResult('basicResult', '❌ Lỗi kết nối:\n\n' + error.message + '\n\nChi tiết lỗi:\n' + error.stack, 'error');
+                updateDebugInfo('Lỗi kết nối', error.message);
+            });
+        }
+
+        function testGetUsers() {
+            if (!currentUrl) {
+                showResult('apiResult', '❌ Vui lòng test kết nối cơ bản trước', 'error');
+                return;
+            }
+
+            testAPI('getUsers', 'Lấy danh sách người dùng');
+        }
+
+        function testGetConfig() {
+            if (!currentUrl) {
+                showResult('apiResult', '❌ Vui lòng test kết nối cơ bản trước', 'error');
+                return;
+            }
+
+            testAPI('getConfig', 'Lấy cấu hình');
+        }
+
+        function testGetNumbers() {
+            if (!currentUrl) {
+                showResult('apiResult', '❌ Vui lòng test kết nối cơ bản trước', 'error');
+                return;
+            }
+
+            testAPI('getNumbers', 'Lấy lịch sử số');
+        }
+
+        function testAPI(action, description) {
+            showResult('apiResult', `🔄 Đang test ${description}...`, 'info');
+
+            const requestData = {
+                action: action
+            };
+
+            console.log('Sending request:', requestData);
+
+            fetch(currentUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(requestData)
+            })
+            .then(response => {
+                console.log('API Response status:', response.status);
+                console.log('API Response headers:', response.headers);
+                return response.json();
+            })
+            .then(data => {
+                console.log('API Response data:', data);
+                
+                if (data.status === 'success') {
+                    showResult('apiResult', `✅ ${description} thành công!\n\nResponse:\n` + JSON.stringify(data, null, 2), 'success');
+                    updateDebugInfo(`${description} thành công`, data);
+                } else {
+                    showResult('apiResult', `❌ ${description} thất bại:\n\nResponse:\n` + JSON.stringify(data, null, 2), 'error');
+                    updateDebugInfo(`${description} thất bại`, data);
+                }
+            })
+            .catch(error => {
+                console.error('API Error:', error);
+                showResult('apiResult', `❌ Lỗi khi ${description}:\n\n` + error.message + '\n\nChi tiết lỗi:\n' + error.stack, 'error');
+                updateDebugInfo(`Lỗi ${description}`, error.message);
+            });
+        }
+
+        function updateDebugInfo(action, data) {
+            const debugInfo = document.getElementById('debugInfo');
+            const timestamp = new Date().toLocaleString('vi-VN');
+            const info = `[${timestamp}] ${action}\nURL: ${currentUrl}\nData: ${JSON.stringify(data, null, 2)}\n\n` + debugInfo.textContent;
+            
+            // Giữ tối đa 1000 ký tự
+            if (info.length > 1000) {
+                debugInfo.textContent = info.substring(0, 1000) + '\n... (truncated)';
+            } else {
+                debugInfo.textContent = info;
+            }
+        }
+    </script>
+</body>
+</html> 

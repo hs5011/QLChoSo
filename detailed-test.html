@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Detailed Google Sheets Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .test-section {
+            background: #f8f9fa;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+            border: 1px solid #dee2e6;
+        }
+        input[type="text"] {
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+            font-size: 14px;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        .result {
+            margin-top: 15px;
+            padding: 15px;
+            border-radius: 4px;
+            font-family: monospace;
+            white-space: pre-wrap;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .success { background: #d4edda; border: 1px solid #c3e6cb; color: #155724; }
+        .error { background: #f8d7da; border: 1px solid #f5c6cb; color: #721c24; }
+        .info { background: #d1ecf1; border: 1px solid #bee5eb; color: #0c5460; }
+        .warning { background: #fff3cd; border: 1px solid #ffeaa7; color: #856404; }
+    </style>
+</head>
+<body>
+    <h1>🔍 Detailed Google Sheets Test</h1>
+    
+    <div class="test-section">
+        <h3>1. Cấu hình:</h3>
+        <input type="text" id="webAppUrl" placeholder="https://script.google.com/macros/s/.../exec">
+        <br>
+        <button onclick="testAll()">Test Tất Cả</button>
+        <button onclick="testGetOnly()">Test GET Only</button>
+        <button onclick="testPostOnly()">Test POST Only</button>
+        <div id="result" class="result info">Nhập URL và click test...</div>
+    </div>
+
+    <div class="test-section">
+        <h3>2. Checklist kiểm tra:</h3>
+        <ul>
+            <li>✅ Web server đang chạy (http://localhost:8000)</li>
+            <li>❓ Google Apps Script được deploy với quyền "Anyone"</li>
+            <li>❓ Google Sheet được chia sẻ với quyền "Anyone with link can edit"</li>
+            <li>❓ Có 3 sheet: Users, Numbers, Config</li>
+            <li>❓ Sheet "Users" có dữ liệu admin</li>
+        </ul>
+    </div>
+
+    <script>
+        let currentUrl = '';
+
+        function showResult(message, type) {
+            const result = document.getElementById('result');
+            result.textContent = message;
+            result.className = 'result ' + type;
+        }
+
+        function log(message) {
+            console.log(message);
+            showResult(message, 'info');
+        }
+
+        async function testAll() {
+            const url = document.getElementById('webAppUrl').value;
+            if (!url) {
+                showResult('❌ Vui lòng nhập URL Web App', 'error');
+                return;
+            }
+
+            currentUrl = url;
+            log('🔄 Bắt đầu test tất cả...\n');
+
+            // Test 1: GET request
+            log('📡 Test 1: GET request...');
+            await testGetRequest();
+
+            // Test 2: POST request
+            log('📡 Test 2: POST request (getUsers)...');
+            await testPostRequest('getUsers');
+
+            // Test 3: POST request getConfig
+            log('📡 Test 3: POST request (getConfig)...');
+            await testPostRequest('getConfig');
+        }
+
+        async function testGetOnly() {
+            const url = document.getElementById('webAppUrl').value;
+            if (!url) {
+                showResult('❌ Vui lòng nhập URL Web App', 'error');
+                return;
+            }
+
+            currentUrl = url;
+            await testGetRequest();
+        }
+
+        async function testPostOnly() {
+            const url = document.getElementById('webAppUrl').value;
+            if (!url) {
+                showResult('❌ Vui lòng nhập URL Web App', 'error');
+                return;
+            }
+
+            currentUrl = url;
+            await testPostRequest('getUsers');
+        }
+
+        async function testGetRequest() {
+            try {
+                log('🔄 Đang gửi GET request...');
+                
+                const response = await fetch(currentUrl, {
+                    method: 'GET',
+                    headers: {
+                        'Accept': 'application/json'
+                    }
+                });
+
+                log(`📊 Response Status: ${response.status}`);
+                log(`📊 Response Headers: ${JSON.stringify(Object.fromEntries(response.headers.entries()), null, 2)}`);
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+
+                const text = await response.text();
+                log(`📄 Response Text: ${text}`);
+
+                try {
+                    const json = JSON.parse(text);
+                    if (json.status === 'success') {
+                        showResult('✅ GET request thành công!\n\n' + JSON.stringify(json, null, 2), 'success');
+                    } else {
+                        showResult('⚠️ GET request có lỗi:\n\n' + JSON.stringify(json, null, 2), 'warning');
+                    }
+                } catch (e) {
+                    showResult('⚠️ Response không phải JSON:\n\n' + text, 'warning');
+                }
+
+            } catch (error) {
+                console.error('GET Error:', error);
+                showResult('❌ Lỗi GET request:\n\n' + error.message + '\n\nStack:\n' + error.stack, 'error');
+            }
+        }
+
+        async function testPostRequest(action) {
+            try {
+                log(`🔄 Đang gửi POST request với action: ${action}...`);
+                
+                const requestData = { action: action };
+                log(`📤 Request Data: ${JSON.stringify(requestData, null, 2)}`);
+
+                const response = await fetch(currentUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify(requestData)
+                });
+
+                log(`📊 Response Status: ${response.status}`);
+                log(`📊 Response Headers: ${JSON.stringify(Object.fromEntries(response.headers.entries()), null, 2)}`);
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+
+                const text = await response.text();
+                log(`📄 Response Text: ${text}`);
+
+                try {
+                    const json = JSON.parse(text);
+                    if (json.status === 'success') {
+                        showResult(`✅ POST request (${action}) thành công!\n\n` + JSON.stringify(json, null, 2), 'success');
+                    } else {
+                        showResult(`❌ POST request (${action}) thất bại:\n\n` + JSON.stringify(json, null, 2), 'error');
+                    }
+                } catch (e) {
+                    showResult(`⚠️ Response không phải JSON (${action}):\n\n` + text, 'warning');
+                }
+
+            } catch (error) {
+                console.error('POST Error:', error);
+                showResult(`❌ Lỗi POST request (${action}):\n\n` + error.message + '\n\nStack:\n' + error.stack, 'error');
+            }
+        }
+    </script>
+</body>
+</html> 

@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Đăng Nhập - Hệ Thống Quản Lý Lấy Số</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🎫 Hệ Thống Quản Lý Lấy Số</h1>
+        </header>
+        <div class="form-container">
+            <h2>🔐 Đăng Nhập</h2>
+            <form id="loginForm">
+                <div class="form-group">
+                    <label for="username">Tên đăng nhập:</label>
+                    <input type="text" id="username" name="username" required>
+                </div>
+                <div class="form-group">
+                    <label for="password">Mật khẩu:</label>
+                    <input type="password" id="password" name="password" required>
+                </div>
+                <button type="submit" class="btn btn-primary">Đăng nhập</button>
+            </form>
+            <div class="info-box">
+                <h3>📋 Thông tin đăng nhập:</h3>
+                <p><strong>Admin:</strong> admin / admin123</p>
+                <p><strong>Người dùng:</strong> Tạo tài khoản mới qua Admin</p>
+            </div>
+        </div>
+    </div>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+    <script src="excel-system.js"></script>
+    <script>
+      const firebaseConfig = {
+        apiKey: "AIzaSyCJxWFddP-3WAJFmrOPFKRel-gKHacvl-g",
+        authDomain: "qlchoso.firebaseapp.com",
+        projectId: "qlchoso",
+        storageBucket: "qlchoso.firebasestorage.app",
+        messagingSenderId: "78427951226",
+        appId: "1:78427951226:web:abd38ca163ff8e28532bc3",
+        measurementId: "G-4P3T7SHZS4"
+      };
+      firebase.initializeApp(firebaseConfig);
+      const db = firebase.firestore();
+    </script>
+    <script>
+    document.getElementById('loginForm').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        const username = document.getElementById('username').value.trim();
+        const password = document.getElementById('password').value;
+        await excelSystem.loadUsers();
+        const user = excelSystem.users.find(u => u.username === username && u.password === password);
+        if (user) {
+            localStorage.setItem('currentUser', JSON.stringify(user));
+            localStorage.setItem('isAdmin', user.isAdmin ? '1' : '0');
+            window.location.href = 'dashboard.html';
+        } else {
+            alert('Tên đăng nhập hoặc mật khẩu không đúng!');
+        }
+    });
+    </script>
+</body>
+</html> 

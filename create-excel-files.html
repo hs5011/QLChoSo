@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tạo File Excel Mẫu</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .section {
+            background: #f8f9fa;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+            border: 1px solid #dee2e6;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+            font-size: 14px;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        .info {
+            background: #d1ecf1;
+            border: 1px solid #bee5eb;
+            color: #0c5460;
+            padding: 15px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <h1>📊 Tạo File Excel Mẫu</h1>
+    
+    <div class="section">
+        <h2>1. Tạo File Excel cho Hệ Thống Lấy Số</h2>
+        <p>Click các nút bên dưới để tạo file Excel mẫu:</p>
+        
+        <button onclick="createUsersExcel()">📋 Tạo File Users.xlsx</button>
+        <button onclick="createNumbersExcel()">📊 Tạo File Numbers.xlsx</button>
+        <button onclick="createConfigExcel()">⚙️ Tạo File Config.xlsx</button>
+        <button onclick="createAllFiles()">📁 Tạo Tất Cả File</button>
+    </div>
+
+    <div class="section">
+        <h2>2. Hướng Dẫn Sử Dụng</h2>
+        <div class="info">
+            <h3>File Users.xlsx:</h3>
+            <ul>
+                <li>Chứa thông tin người dùng</li>
+                <li>Cột: Name, Username, Password, IsAdmin</li>
+                <li>Dữ liệu mẫu: Admin (admin/admin123)</li>
+            </ul>
+            
+            <h3>File Numbers.xlsx:</h3>
+            <ul>
+                <li>Chứa lịch sử lấy số</li>
+                <li>Cột: Number, Content, UserName, Timestamp, DateTime</li>
+                <li>Dữ liệu sẽ được thêm tự động</li>
+            </ul>
+            
+            <h3>File Config.xlsx:</h3>
+            <ul>
+                <li>Chứa cấu hình hệ thống</li>
+                <li>Cột: CurrentNumber</li>
+                <li>Giá trị mặc định: 100</li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="section">
+        <h2>3. Lưu Ý Quan Trọng</h2>
+        <ul>
+            <li>✅ File Excel sẽ được lưu trong thư mục dự án</li>
+            <li>✅ Hệ thống sẽ đọc/ghi trực tiếp vào file Excel</li>
+            <li>✅ Không cần internet để hoạt động</li>
+            <li>✅ Dữ liệu được backup tự động</li>
+            <li>⚠️ Đảm bảo không mở file Excel khi hệ thống đang chạy</li>
+        </ul>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script>
+        function createUsersExcel() {
+            const workbook = XLSX.utils.book_new();
+            
+            // Dữ liệu mẫu cho Users
+            const usersData = [
+                ['Name', 'Username', 'Password', 'IsAdmin'],
+                ['Admin', 'admin', 'admin123', 'TRUE']
+            ];
+            
+            const worksheet = XLSX.utils.aoa_to_sheet(usersData);
+            XLSX.utils.book_append_sheet(workbook, worksheet, 'Users');
+            XLSX.writeFile(workbook, 'users.xlsx');
+            
+            alert('✅ Đã tạo file users.xlsx thành công!');
+        }
+
+        function createNumbersExcel() {
+            const workbook = XLSX.utils.book_new();
+            
+            // Header cho Numbers
+            const numbersData = [
+                ['Number', 'Content', 'UserName', 'Timestamp', 'DateTime']
+            ];
+            
+            const worksheet = XLSX.utils.aoa_to_sheet(numbersData);
+            XLSX.utils.book_append_sheet(workbook, worksheet, 'Numbers');
+            XLSX.writeFile(workbook, 'numbers.xlsx');
+            
+            alert('✅ Đã tạo file numbers.xlsx thành công!');
+        }
+
+        function createConfigExcel() {
+            const workbook = XLSX.utils.book_new();
+            
+            // Dữ liệu mẫu cho Config
+            const configData = [
+                ['CurrentNumber'],
+                [100]
+            ];
+            
+            const worksheet = XLSX.utils.aoa_to_sheet(configData);
+            XLSX.utils.book_append_sheet(workbook, worksheet, 'Config');
+            XLSX.writeFile(workbook, 'config.xlsx');
+            
+            alert('✅ Đã tạo file config.xlsx thành công!');
+        }
+
+        function createAllFiles() {
+            createUsersExcel();
+            setTimeout(() => createNumbersExcel(), 500);
+            setTimeout(() => createConfigExcel(), 1000);
+            
+            setTimeout(() => {
+                alert('✅ Đã tạo tất cả file Excel thành công!\n\nCác file đã tạo:\n- users.xlsx\n- numbers.xlsx\n- config.xlsx');
+            }, 1500);
+        }
+    </script>
+</body>
+</html> 

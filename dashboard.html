@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - Hệ Thống Quản Lý Lấy Số</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🎫 Hệ Thống Quản Lý Lấy Số</h1>
+        </header>
+        <div id="userDashboard" class="dashboard hidden">
+            <div class="dashboard-header">
+                <h2>👤 Bảng Điều Khiển Người Dùng</h2>
+                <div class="user-info">
+                    <span id="userDisplayName"></span>
+                    <button onclick="logout()" class="btn btn-secondary">Đăng xuất</button>
+                </div>
+            </div>
+            <div class="dashboard-content">
+                <div class="number-section">
+                    <h3>🎫 Lấy Số</h3>
+                    <div class="current-number">
+                        <p>Số hiện tại: <span id="currentNumber">100</span></p>
+                    </div>
+                    <form id="getNumberForm">
+                        <div class="form-group">
+                            <label for="content">Nội dung:</label>
+                            <textarea id="content" name="content" rows="3" placeholder="Nhập nội dung cần lấy số..." required></textarea>
+                        </div>
+                        <button type="submit" class="btn btn-success">Lấy số</button>
+                    </form>
+                </div>
+                <div class="history-section">
+                    <h3>📋 Lịch Sử Lấy Số</h3>
+                    <div id="userHistory" class="history-list"></div>
+                </div>
+            </div>
+        </div>
+        <div id="adminDashboard" class="dashboard hidden">
+            <div class="dashboard-header">
+                <h2>⚙️ Bảng Điều Khiển Admin</h2>
+                <div class="user-info">
+                    <span id="adminName"></span>
+                    <button onclick="logout()" class="btn btn-secondary">Đăng xuất</button>
+                </div>
+            </div>
+            <div class="dashboard-content">
+                <div class="admin-sections">
+                    <div class="section">
+                        <h3>🎫 Quản Lý Số</h3>
+                        <div class="current-number-admin">
+                            <p>Số hiện tại: <span id="adminCurrentNumber">100</span></p>
+                            <form id="updateNumberForm">
+                                <div class="form-group">
+                                    <label for="newNumber">Cập nhật số:</label>
+                                    <input type="number" id="newNumber" name="newNumber" min="1" required>
+                                </div>
+                                <button type="submit" class="btn btn-warning">Cập nhật</button>
+                            </form>
+                        </div>
+                    </div>
+                    <div class="section">
+                        <h3>👥 Quản Lý Người Dùng</h3>
+                        <form id="addUserForm">
+                            <div class="form-group">
+                                <label for="newUserName">Họ và tên:</label>
+                                <input type="text" id="newUserName" name="newUserName" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="newUserUsername">Tên đăng nhập:</label>
+                                <input type="text" id="newUserUsername" name="newUserUsername" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="newUserPassword">Mật khẩu:</label>
+                                <input type="password" id="newUserPassword" name="newUserPassword" required>
+                            </div>
+                            <button type="submit" class="btn btn-primary">Thêm người dùng</button>
+                        </form>
+                    </div>
+                    <div class="section">
+                        <h3>📊 Xuất Dữ Liệu</h3>
+                        <div class="export-buttons">
+                            <button onclick="exportUserData()" class="btn btn-info">📋 Xuất danh sách người dùng</button>
+                            <button onclick="exportNumberData()" class="btn btn-info">📊 Xuất lịch sử lấy số</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="admin-tables">
+                    <div class="table-section">
+                        <h3>👥 Danh Sách Người Dùng</h3>
+                        <div id="usersList" class="table-container"></div>
+                    </div>
+                    <div class="table-section">
+                        <h3>📋 Lịch Sử Lấy Số</h3>
+                        <div id="adminHistory" class="table-container"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div id="successModal" class="modal hidden">
+            <div class="modal-content">
+                <h3>✅ Thành công!</h3>
+                <p id="successMessage"></p>
+                <button onclick="closeModal()" class="btn btn-primary">Đóng</button>
+            </div>
+        </div>
+        <div id="errorModal" class="modal hidden">
+            <div class="modal-content">
+                <h3>❌ Lỗi!</h3>
+                <p id="errorMessage"></p>
+                <button onclick="closeModal()" class="btn btn-danger">Đóng</button>
+            </div>
+        </div>
+    </div>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+    <script>
+      const firebaseConfig = {
+        apiKey: "AIzaSyCJxWFddP-3WAJFmrOPFKRel-gKHacvl-g",
+        authDomain: "qlchoso.firebaseapp.com",
+        projectId: "qlchoso",
+        storageBucket: "qlchoso.firebasestorage.app",
+        messagingSenderId: "78427951226",
+        appId: "1:78427951226:web:abd38ca163ff8e28532bc3",
+        measurementId: "G-4P3T7SHZS4"
+      };
+      firebase.initializeApp(firebaseConfig);
+      const db = firebase.firestore();
+    </script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="excel-system.js"></script>
+    <script src="script.js"></script>
+    <script>
+    // Kiểm tra quyền truy cập khi vào dashboard
+    const savedUser = localStorage.getItem('currentUser');
+    const savedIsAdmin = localStorage.getItem('isAdmin');
+    if (!savedUser || !savedIsAdmin) {
+        window.location.href = 'login.html';
+    } else {
+        const user = JSON.parse(savedUser);
+        const isAdmin = savedIsAdmin === '1';
+        // Hàm cập nhật số hiện tại là số lớn nhất đã lấy
+        async function updateCurrentNumberDisplayFromDB() {
+            await excelSystem.loadNumbers();
+            let maxNumber = 0;
+            if (excelSystem.numberHistory.length > 0) {
+                maxNumber = Math.max(...excelSystem.numberHistory.map(r => r.number));
+            }
+            // Admin
+            const adminCurrent = document.getElementById('adminCurrentNumber');
+            if (adminCurrent) adminCurrent.textContent = maxNumber;
+            // User
+            const userCurrent = document.getElementById('currentNumber');
+            if (userCurrent) userCurrent.textContent = maxNumber;
+        }
+        if (isAdmin) {
+            document.getElementById('adminDashboard').classList.remove('hidden');
+            document.getElementById('adminName').textContent = `Admin: ${user.name}`;
+            updateCurrentNumberDisplayFromDB();
+        } else {
+            document.getElementById('userDashboard').classList.remove('hidden');
+            document.getElementById('userDisplayName').textContent = user.name;
+            updateCurrentNumberDisplayFromDB();
+        }
+    }
+    // Đăng xuất
+    function logout() {
+        localStorage.removeItem('currentUser');
+        localStorage.removeItem('isAdmin');
+        window.location.href = 'login.html';
+    }
+    </script>
+</body>
+</html> 

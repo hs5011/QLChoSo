@@ -529,4 +529,83 @@ header p {
 @keyframes spin {
     0% { transform: rotate(0deg); }
     100% { transform: rotate(360deg); }
+}
+
+/* Modal lấy số thành công */
+.modal-center {
+    text-align: center;
+    display: block;
+}
+.modal-info {
+    text-align: left;
+    margin: 10px 0 0 0;
+    color: #555;
+    font-size: 1.1rem;
+}
+.modal-number {
+    color: #3b82f6;
+    font-size: 2.2rem;
+    font-weight: bold;
+    margin-left: 10px;
+}
+
+.modal-content .btn.modal-center {
+    display: block;
+    margin: 24px auto 0 auto;
+}
+
+/* Tabs cho admin */
+.admin-tabs {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 24px;
+}
+.tab-btn {
+    background: #f3f4f6;
+    border: none;
+    padding: 10px 24px;
+    border-radius: 6px 6px 0 0;
+    font-size: 1.1rem;
+    font-weight: 500;
+    cursor: pointer;
+    color: #333;
+    transition: background 0.2s, color 0.2s;
+}
+.tab-btn.active {
+    background: #3b82f6;
+    color: #fff;
+    font-weight: bold;
+    border-bottom: 3px solid #2563eb;
+    box-shadow: 0 2px 8px rgba(59,130,246,0.08);
+}
+.admin-tab-content {
+    display: block;
+}
+.admin-tab-content.hidden {
+    display: none;
+}
+
+/* Style cho input trong form và search */
+input[type="text"], input[type="password"], input[type="date"] {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1.5px solid #d1d5db;
+    border-radius: 6px;
+    font-size: 1rem;
+    font-family: inherit;
+    background: #fff;
+    transition: border 0.2s;
+    box-sizing: border-box;
+}
+input[type="text"]:focus, input[type="password"]:focus, input[type="date"]:focus {
+    border-color: #3b82f6;
+    outline: none;
+}
+.search-bar label {
+    font-weight: 500;
+    margin-bottom: 4px;
+    display: block;
+}
+.search-bar > div {
+    min-width: 180px;
 } 

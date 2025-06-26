@@ -22,9 +22,6 @@
             <div class="dashboard-content">
                 <div class="number-section">
                     <h3>🎫 Lấy Số</h3>
-                    <div class="current-number">
-                        <p>Số hiện tại: <span id="currentNumber">100</span></p>
-                    </div>
                     <form id="getNumberForm">
                         <div class="form-group">
                             <label for="content">Nội dung:</label>
@@ -48,20 +45,12 @@
                 </div>
             </div>
             <div class="dashboard-content">
-                <div class="admin-sections">
-                    <div class="section">
-                        <h3>🎫 Quản Lý Số</h3>
-                        <div class="current-number-admin">
-                            <p>Số hiện tại: <span id="adminCurrentNumber">100</span></p>
-                            <form id="updateNumberForm">
-                                <div class="form-group">
-                                    <label for="newNumber">Cập nhật số:</label>
-                                    <input type="number" id="newNumber" name="newNumber" min="1" required>
-                                </div>
-                                <button type="submit" class="btn btn-warning">Cập nhật</button>
-                            </form>
-                        </div>
-                    </div>
+                <div class="admin-tabs">
+                    <button class="tab-btn active" id="tabUserBtn" onclick="showAdminTab('user')">Quản lý người dùng</button>
+                    <button class="tab-btn" id="tabHistoryBtn" onclick="showAdminTab('history')">Tra cứu lấy số</button>
+                    <button class="tab-btn" id="tabConfigBtn" onclick="showAdminTab('config')">Cấu hình</button>
+                </div>
+                <div id="tabUser" class="admin-tab-content">
                     <div class="section">
                         <h3>👥 Quản Lý Người Dùng</h3>
                         <form id="addUserForm">
@@ -79,23 +68,53 @@
                             </div>
                             <button type="submit" class="btn btn-primary">Thêm người dùng</button>
                         </form>
-                    </div>
-                    <div class="section">
-                        <h3>📊 Xuất Dữ Liệu</h3>
-                        <div class="export-buttons">
+                        <div class="export-buttons" style="margin-top:16px;">
                             <button onclick="exportUserData()" class="btn btn-info">📋 Xuất danh sách người dùng</button>
-                            <button onclick="exportNumberData()" class="btn btn-info">📊 Xuất lịch sử lấy số</button>
                         </div>
                     </div>
-                </div>
-                <div class="admin-tables">
                     <div class="table-section">
                         <h3>👥 Danh Sách Người Dùng</h3>
                         <div id="usersList" class="table-container"></div>
                     </div>
-                    <div class="table-section">
+                </div>
+                <div id="tabHistory" class="admin-tab-content hidden">
+                    <div class="section">
                         <h3>📋 Lịch Sử Lấy Số</h3>
+                        <div class="search-bar" style="margin-bottom:16px;display:flex;gap:12px;align-items:end;flex-wrap:wrap;">
+                            <div>
+                                <label for="searchUserName">Người lấy:</label>
+                                <input type="text" id="searchUserName" placeholder="Nhập tên người lấy..." style="min-width:160px;">
+                            </div>
+                            <div>
+                                <label for="searchFrom">Từ ngày:</label>
+                                <input type="date" id="searchFrom">
+                            </div>
+                            <div>
+                                <label for="searchTo">Đến ngày:</label>
+                                <input type="date" id="searchTo">
+                            </div>
+                            <button class="btn btn-primary" onclick="searchAdminHistory()">Tìm kiếm</button>
+                            <button class="btn btn-light" onclick="resetAdminHistorySearch()">Xóa lọc</button>
+                        </div>
+                        <div class="export-buttons" style="margin-bottom:16px;">
+                            <button onclick="exportNumberData()" class="btn btn-info">📊 Xuất lịch sử lấy số</button>
+                        </div>
                         <div id="adminHistory" class="table-container"></div>
+                    </div>
+                </div>
+                <div id="tabConfig" class="admin-tab-content hidden">
+                    <div class="section">
+                        <h3>🎫 Quản Lý Số</h3>
+                        <div class="current-number-admin">
+                            <p>Số tiếp theo: <span id="adminCurrentNumber">100</span></p>
+                            <form id="updateNumberForm">
+                                <div class="form-group">
+                                    <label for="newNumber">Cập nhật số:</label>
+                                    <input type="number" id="newNumber" name="newNumber" min="1" required>
+                                </div>
+                                <button type="submit" class="btn btn-warning">Cập nhật</button>
+                            </form>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -112,6 +131,16 @@
                 <h3>❌ Lỗi!</h3>
                 <p id="errorMessage"></p>
                 <button onclick="closeModal()" class="btn btn-danger">Đóng</button>
+            </div>
+        </div>
+        <div id="userGetNumberModal" class="modal hidden">
+            <div class="modal-content">
+                <h3 class="modal-center">🎫 Lấy số thành công!</h3>
+                <p class="modal-info"><strong>Số của bạn:</strong> <span id="modalNumber" class="modal-number"></span></p>
+                <p class="modal-info"><strong>Nội dung:</strong> <span id="modalContent"></span></p>
+                <p class="modal-info"><strong>Người lấy:</strong> <span id="modalUser"></span></p>
+                <p class="modal-info"><strong>Thời gian:</strong> <span id="modalTime"></span></p>
+                <button onclick="closeUserGetNumberModal()" class="btn btn-primary modal-center">Đóng</button>
             </div>
         </div>
     </div>
@@ -142,19 +171,15 @@
     } else {
         const user = JSON.parse(savedUser);
         const isAdmin = savedIsAdmin === '1';
-        // Hàm cập nhật số hiện tại là số lớn nhất đã lấy
+        // Hàm cập nhật số hiện tại là số trong config (currentNumber)
         async function updateCurrentNumberDisplayFromDB() {
-            await excelSystem.loadNumbers();
-            let maxNumber = 0;
-            if (excelSystem.numberHistory.length > 0) {
-                maxNumber = Math.max(...excelSystem.numberHistory.map(r => r.number));
-            }
+            await excelSystem.loadConfig();
             // Admin
             const adminCurrent = document.getElementById('adminCurrentNumber');
-            if (adminCurrent) adminCurrent.textContent = maxNumber;
+            if (adminCurrent) adminCurrent.textContent = excelSystem.currentNumber;
             // User
             const userCurrent = document.getElementById('currentNumber');
-            if (userCurrent) userCurrent.textContent = maxNumber;
+            if (userCurrent) userCurrent.textContent = excelSystem.currentNumber;
         }
         if (isAdmin) {
             document.getElementById('adminDashboard').classList.remove('hidden');
@@ -171,6 +196,28 @@
         localStorage.removeItem('currentUser');
         localStorage.removeItem('isAdmin');
         window.location.href = 'login.html';
+    }
+    function showAdminTab(tab) {
+        document.getElementById('tabUser').classList.add('hidden');
+        document.getElementById('tabHistory').classList.add('hidden');
+        document.getElementById('tabConfig').classList.add('hidden');
+        document.getElementById('tabUserBtn').classList.remove('active');
+        document.getElementById('tabHistoryBtn').classList.remove('active');
+        document.getElementById('tabConfigBtn').classList.remove('active');
+        if (tab === 'user') {
+            document.getElementById('tabUser').classList.remove('hidden');
+            document.getElementById('tabUserBtn').classList.add('active');
+        } else if (tab === 'history') {
+            document.getElementById('tabHistory').classList.remove('hidden');
+            document.getElementById('tabHistoryBtn').classList.add('active');
+        } else if (tab === 'config') {
+            document.getElementById('tabConfig').classList.remove('hidden');
+            document.getElementById('tabConfigBtn').classList.add('active');
+        }
+    }
+    // Khi vào dashboard admin, mặc định mở tab user
+    if (typeof isAdmin !== 'undefined' && isAdmin) {
+        setTimeout(() => showAdminTab('user'), 0);
     }
     </script>
 </body>

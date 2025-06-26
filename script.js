@@ -108,7 +108,7 @@ function showUserLogin() {
 }
 
 function showUserDashboard() {
-    document.getElementById('loginForm').classList.add('hidden');
+    document.getElementById('loginForm')?.classList.add('hidden');
     if (document.getElementById('adminLoginForm')) document.getElementById('adminLoginForm').classList.add('hidden');
     document.getElementById('userDashboard').classList.remove('hidden');
     document.getElementById('adminDashboard').classList.add('hidden');
@@ -222,6 +222,7 @@ async function getNumber(e) {
     }
     // Transaction Firestore để lấy số mới an toàn
     let numberToGive = 0;
+    let timestamp = new Date().toLocaleString('vi-VN');
     await db.runTransaction(async (transaction) => {
         const configRef = db.collection('config').doc('current');
         const configDoc = await transaction.get(configRef);
@@ -238,7 +239,7 @@ async function getNumber(e) {
             number: currentNumber,
             content: content,
             userName: currentUser.name,
-            timestamp: new Date().toLocaleString('vi-VN'),
+            timestamp: timestamp,
             dateTime: new Date().toISOString()
         });
     });
@@ -249,12 +250,17 @@ async function getNumber(e) {
         number: numberToGive,
         content: content,
         userName: currentUser.name,
-        timestamp: new Date().toLocaleString('vi-VN'),
+        timestamp: timestamp,
         dateTime: new Date().toISOString()
     });
     loadUserHistory();
     document.getElementById('content').value = '';
-    alert(`Bạn đã lấy số: ${numberToGive}`);
+    showUserGetNumberModal({
+        number: numberToGive,
+        content: content,
+        userName: currentUser.name,
+        timestamp: timestamp
+    });
 }
 
 function displayCurrentNumber(numberRecord) {
@@ -287,7 +293,9 @@ function loadUserHistory() {
         historyContainer.innerHTML = '<p class="no-data">Chưa có lịch sử lấy số</p>';
         return;
     }
-    const historyHTML = history.map(record => `
+    // Sắp xếp số mới nhất lên đầu
+    const sortedHistory = [...history].sort((a, b) => b.number - a.number);
+    const historyHTML = sortedHistory.map(record => `
         <div class="history-item">
             <div class="history-number">Số: ${record.number}</div>
             <div class="history-content">Nội dung: ${record.content}</div>
@@ -390,6 +398,7 @@ function loadUserList() {
                         <td>${user.name}</td>
                         <td>${user.username}</td>
                         <td>
+                            <button onclick="editUserModal('${user.username}')" class="btn btn-warning btn-sm">Chỉnh sửa</button>
                             <button onclick="deleteUser('${user.username}')" class="btn btn-danger btn-sm">Xóa</button>
                         </td>
                     </tr>
@@ -409,13 +418,21 @@ function deleteUser(username) {
     }
 }
 
-function loadAllNumberHistory() {
+function loadAllNumberHistory(page = 1, pageSize = 5) {
     const historyContainer = document.getElementById('adminHistory');
     if (!historyContainer) return;
     if (excelSystem.numberHistory.length === 0) {
         historyContainer.innerHTML = '<p class="no-data">Chưa có lịch sử lấy số</p>';
         return;
     }
+    // Sắp xếp số mới nhất lên đầu
+    const sortedHistory = [...excelSystem.numberHistory].sort((a, b) => b.number - a.number);
+    // Phân trang
+    const total = sortedHistory.length;
+    const totalPages = Math.ceil(total / pageSize);
+    const start = (page - 1) * pageSize;
+    const end = start + pageSize;
+    const pageData = sortedHistory.slice(start, end);
     const historyHTML = `
         <table class="data-table">
             <thead>
@@ -427,7 +444,7 @@ function loadAllNumberHistory() {
                 </tr>
             </thead>
             <tbody>
-                ${excelSystem.numberHistory.map(record => `
+                ${pageData.map(record => `
                     <tr>
                         <td>${record.number}</td>
                         <td>${record.content}</td>
@@ -437,6 +454,9 @@ function loadAllNumberHistory() {
                 `).join('')}
             </tbody>
         </table>
+        <div class="pagination" style="margin-top:16px;text-align:center;">
+            ${Array.from({length: totalPages}, (_, i) => `<button class="btn btn-sm${i+1===page?' btn-primary':' btn-light'}" onclick="loadAllNumberHistory(${i+1},${pageSize})">${i+1}</button>`).join(' ')}
+        </div>
     `;
     historyContainer.innerHTML = historyHTML;
 }
@@ -464,22 +484,19 @@ function exportUserData() {
 }
 
 function exportNumberData() {
-    if (numberHistory.length === 0) {
+    if (!excelSystem.numberHistory || excelSystem.numberHistory.length === 0) {
         alert('Không có dữ liệu lấy số để xuất!');
         return;
     }
-    
     const workbook = XLSX.utils.book_new();
-    const worksheet = XLSX.utils.json_to_sheet(numberHistory.map(record => ({
+    const worksheet = XLSX.utils.json_to_sheet(excelSystem.numberHistory.map(record => ({
         'Số cần lấy': record.number,
         'Nội dung': record.content,
         'Ngày giờ lấy': record.timestamp,
         'Họ tên người lấy': record.userName
     })));
-    
     XLSX.utils.book_append_sheet(workbook, worksheet, 'Danh sách lấy số');
     XLSX.writeFile(workbook, 'danh_sach_lay_so.xlsx');
-    
     alert('Đã xuất danh sách lấy số thành công!');
 }
 
@@ -646,6 +663,7 @@ function loadUsersList() {
                         <td>${user.name}</td>
                         <td>${user.username}</td>
                         <td>
+                            <button onclick="editUserModal('${user.username}')" class="btn btn-warning btn-sm">Chỉnh sửa</button>
                             <button onclick="deleteUser('${user.username}')" class="btn btn-danger btn-sm">Xóa</button>
                         </td>
                     </tr>
@@ -654,6 +672,202 @@ function loadUsersList() {
         </table>
     `;
     usersContainer.innerHTML = usersHTML;
+}
+
+// Modal chỉnh sửa user
+if (!document.getElementById('editUserModal')) {
+    const modal = document.createElement('div');
+    modal.id = 'editUserModal';
+    modal.className = 'modal hidden';
+    modal.innerHTML = `
+        <div class="modal-content">
+            <h3>Chỉnh sửa người dùng</h3>
+            <form id="editUserForm">
+                <div class="form-group">
+                    <label for="editUserName">Họ và tên:</label>
+                    <input type="text" id="editUserName" name="editUserName" required>
+                </div>
+                <div class="form-group">
+                    <label for="editUserPassword">Mật khẩu:</label>
+                    <input type="password" id="editUserPassword" name="editUserPassword" required>
+                </div>
+                <input type="hidden" id="editUserUsername" name="editUserUsername">
+                <button type="submit" class="btn btn-primary">Lưu</button>
+                <button type="button" onclick="closeEditUserModal()" class="btn btn-secondary">Hủy</button>
+            </form>
+        </div>
+    `;
+    document.body.appendChild(modal);
+}
+
+window.editUserModal = function(username) {
+    const user = excelSystem.users.find(u => u.username === username);
+    if (!user) return;
+    document.getElementById('editUserName').value = user.name;
+    document.getElementById('editUserPassword').value = user.password;
+    document.getElementById('editUserUsername').value = user.username;
+    document.getElementById('editUserModal').classList.remove('hidden');
+}
+
+window.closeEditUserModal = function() {
+    document.getElementById('editUserModal').classList.add('hidden');
+    document.getElementById('editUserForm').reset();
+}
+
+document.getElementById('editUserForm')?.addEventListener('submit', async function(e) {
+    e.preventDefault();
+    const name = document.getElementById('editUserName').value.trim();
+    const password = document.getElementById('editUserPassword').value;
+    const username = document.getElementById('editUserUsername').value;
+    const user = excelSystem.users.find(u => u.username === username);
+    if (!user) return;
+    user.name = name;
+    user.password = password;
+    await excelSystem.saveUsers();
+    await excelSystem.loadUsers();
+    loadUserList();
+    closeEditUserModal();
+    showSuccess('Đã cập nhật thông tin người dùng thành công!');
+});
+
+function showUserGetNumberModal(data) {
+    document.getElementById('modalNumber').textContent = data.number;
+    document.getElementById('modalContent').textContent = data.content;
+    document.getElementById('modalUser').textContent = data.userName;
+    document.getElementById('modalTime').textContent = data.timestamp;
+    document.getElementById('userGetNumberModal').classList.remove('hidden');
+}
+
+function closeUserGetNumberModal() {
+    document.getElementById('userGetNumberModal').classList.add('hidden');
+}
+
+function searchAdminHistory() {
+    const name = document.getElementById('searchUserName').value.trim().toLowerCase();
+    const from = document.getElementById('searchFrom').value;
+    const to = document.getElementById('searchTo').value;
+    let filtered = excelSystem.numberHistory;
+    if (name) {
+        filtered = filtered.filter(r => (r.userName || '').toLowerCase().includes(name));
+    }
+    if (from) {
+        const fromDate = new Date(from + 'T00:00:00');
+        filtered = filtered.filter(r => {
+            const d = parseDateVN(r.timestamp);
+            return d && d >= fromDate;
+        });
+    }
+    if (to) {
+        const toDate = new Date(to + 'T23:59:59');
+        filtered = filtered.filter(r => {
+            const d = parseDateVN(r.timestamp);
+            return d && d <= toDate;
+        });
+    }
+    renderAdminHistory(filtered);
+}
+
+function resetAdminHistorySearch() {
+    document.getElementById('searchUserName').value = '';
+    document.getElementById('searchFrom').value = '';
+    document.getElementById('searchTo').value = '';
+    renderAdminHistory(excelSystem.numberHistory);
+}
+
+function renderAdminHistory(data) {
+    const historyContainer = document.getElementById('adminHistory');
+    if (!historyContainer) return;
+    if (!data || data.length === 0) {
+        historyContainer.innerHTML = '<p class="no-data">Chưa có lịch sử lấy số</p>';
+        return;
+    }
+    // Sắp xếp số mới nhất lên đầu
+    const sortedHistory = [...data].sort((a, b) => b.number - a.number);
+    const pageSize = 5;
+    const page = 1;
+    const total = sortedHistory.length;
+    const totalPages = Math.ceil(total / pageSize);
+    const pageData = sortedHistory.slice((page-1)*pageSize, page*pageSize);
+    const historyHTML = `
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Số</th>
+                    <th>Nội dung</th>
+                    <th>Người lấy</th>
+                    <th>Thời gian</th>
+                </tr>
+            </thead>
+            <tbody>
+                ${pageData.map(record => `
+                    <tr>
+                        <td>${record.number}</td>
+                        <td>${record.content}</td>
+                        <td>${record.userName}</td>
+                        <td>${record.timestamp}</td>
+                    </tr>
+                `).join('')}
+            </tbody>
+        </table>
+        <div class="pagination" style="margin-top:16px;text-align:center;">
+            ${Array.from({length: totalPages}, (_, i) => `<button class="btn btn-sm${i+1===page?' btn-primary':' btn-light'}" onclick="renderAdminHistoryPage(${i+1},${pageSize},${JSON.stringify(sortedHistory).replace(/"/g,'&quot;')})">${i+1}</button>`).join(' ')}
+        </div>
+    `;
+    historyContainer.innerHTML = historyHTML;
+}
+
+function renderAdminHistoryPage(page, pageSize, dataStr) {
+    const data = JSON.parse(dataStr.replace(/&quot;/g,'"'));
+    const historyContainer = document.getElementById('adminHistory');
+    if (!historyContainer) return;
+    if (!data || data.length === 0) {
+        historyContainer.innerHTML = '<p class="no-data">Chưa có lịch sử lấy số</p>';
+        return;
+    }
+    const sortedHistory = [...data].sort((a, b) => b.number - a.number);
+    const total = sortedHistory.length;
+    const totalPages = Math.ceil(total / pageSize);
+    const pageData = sortedHistory.slice((page-1)*pageSize, page*pageSize);
+    const historyHTML = `
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Số</th>
+                    <th>Nội dung</th>
+                    <th>Người lấy</th>
+                    <th>Thời gian</th>
+                </tr>
+            </thead>
+            <tbody>
+                ${pageData.map(record => `
+                    <tr>
+                        <td>${record.number}</td>
+                        <td>${record.content}</td>
+                        <td>${record.userName}</td>
+                        <td>${record.timestamp}</td>
+                    </tr>
+                `).join('')}
+            </tbody>
+        </table>
+        <div class="pagination" style="margin-top:16px;text-align:center;">
+            ${Array.from({length: totalPages}, (_, i) => `<button class="btn btn-sm${i+1===page?' btn-primary':' btn-light'}" onclick="renderAdminHistoryPage(${i+1},${pageSize},${JSON.stringify(sortedHistory).replace(/"/g,'&quot;')})">${i+1}</button>`).join(' ')}
+        </div>
+    `;
+    historyContainer.innerHTML = historyHTML;
+}
+
+function parseDateVN(str) {
+    // "15:57:39 26/6/2025" => Date
+    if (!str) return null;
+    const m = str.match(/(\d{2}):(\d{2}):(\d{2}) (\d{1,2})\/(\d{1,2})\/(\d{4})/);
+    if (!m) return null;
+    return new Date(`${m[6]}-${m[5].padStart(2,'0')}-${m[4].padStart(2,'0')}T${m[1]}:${m[2]}:${m[3]}`);
+}
+
+// Gọi renderAdminHistory khi vào tab tra cứu lấy số
+const tabHistoryBtn = document.getElementById('tabHistoryBtn');
+if (tabHistoryBtn) {
+    tabHistoryBtn.addEventListener('click', () => renderAdminHistory(excelSystem.numberHistory));
 }
 
 

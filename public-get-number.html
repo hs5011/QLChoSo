@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lấy Số - Hệ Thống Quản Lý Lấy Số</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        .public-container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .public-header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 10px;
+        }
+        
+        .public-header h1 {
+            margin: 0;
+            font-size: 2.5em;
+        }
+        
+        .public-header p {
+            margin: 10px 0 0 0;
+            opacity: 0.9;
+        }
+        
+        .get-number-section {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            margin-bottom: 30px;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+            color: #333;
+        }
+        
+        .form-group input,
+        .form-group textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+        
+        .form-group input:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        .btn-get-number {
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        
+        .btn-get-number:hover {
+            transform: translateY(-2px);
+        }
+        
+        .btn-get-number:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .back-link {
+            text-align: center;
+            margin-top: 20px;
+        }
+        
+        .back-link a {
+            color: #667eea;
+            text-decoration: none;
+            font-weight: bold;
+        }
+        
+        .back-link a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="public-container">
+        <div class="public-header">
+            <h1>🎫 Lấy Số</h1>
+            <p>Hệ thống quản lý lấy số tự động</p>
+        </div>
+
+        <div class="get-number-section">
+            <form id="publicGetNumberForm">
+                <div class="form-group">
+                    <label for="fullName">Họ và tên người lấy số:</label>
+                    <input type="text" id="fullName" name="fullName" placeholder="Nhập họ và tên của bạn..." required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="content">Nội dung cần lấy số:</label>
+                    <textarea id="content" name="content" rows="4" placeholder="Nhập nội dung chi tiết cần lấy số..." required></textarea>
+                </div>
+                
+                <button type="submit" class="btn-get-number" id="submitBtn">
+                    🎫 Lấy Số Ngay
+                </button>
+            </form>
+        </div>
+
+        <div class="back-link">
+            <a href="login.html">← Quay lại trang chính</a>
+        </div>
+    </div>
+
+    <!-- Success Modal -->
+    <div id="userGetNumberModal" class="modal hidden">
+        <div class="modal-content">
+            <h3 class="modal-center">🎫 Lấy số thành công!</h3>
+            <p class="modal-info"><strong>Số của bạn:</strong> <span id="modalNumber" class="modal-number"></span></p>
+            <p class="modal-info"><strong>Nội dung:</strong> <span id="modalContent"></span></p>
+            <p class="modal-info"><strong>Người lấy:</strong> <span id="modalUser"></span></p>
+            <p class="modal-info"><strong>Thời gian:</strong> <span id="modalTime"></span></p>
+            <button onclick="closeUserGetNumberModal()" class="btn btn-primary modal-center">Đóng</button>
+        </div>
+    </div>
+
+    <!-- Error Modal -->
+    <div id="errorModal" class="modal hidden">
+        <div class="modal-content">
+            <h3>❌ Có lỗi xảy ra!</h3>
+            <p id="modalErrorMessage"></p>
+            <button onclick="closeModal()" class="btn btn-danger">Đóng</button>
+        </div>
+    </div>
+
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyCJxWFddP-3WAJFmrOPFKRel-gKHacvl-g",
+            authDomain: "qlchoso.firebaseapp.com",
+            projectId: "qlchoso",
+            storageBucket: "qlchoso.firebasestorage.app",
+            messagingSenderId: "78427951226",
+            appId: "1:78427951226:web:abd38ca163ff8e28532bc3",
+            measurementId: "G-4P3T7SHZS4"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+    </script>
+    <script src="excel-system.js"></script>
+    <script>
+        // Global variables
+        let currentNumber = 100;
+
+        // Initialize the application
+        async function init() {
+            try {
+                // Load data từ Firestore
+                await excelSystem.loadData();
+                currentNumber = excelSystem.currentNumber;
+                console.log('✅ Public get number page initialized successfully');
+            } catch (error) {
+                console.error('❌ Error initializing public get number page:', error);
+                showError('Không thể kết nối đến hệ thống. Vui lòng thử lại sau.');
+            }
+        }
+
+        // Handle form submission
+        async function handleGetNumber(e) {
+            e.preventDefault();
+            
+            const fullName = document.getElementById('fullName').value.trim();
+            const content = document.getElementById('content').value.trim();
+            
+            if (!fullName) {
+                showError('Vui lòng nhập họ và tên!');
+                return;
+            }
+            
+            if (!content) {
+                showError('Vui lòng nhập nội dung cần lấy số!');
+                return;
+            }
+
+            // Disable submit button
+            const submitBtn = document.getElementById('submitBtn');
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Đang xử lý...';
+
+            try {
+                // Transaction Firestore để lấy số mới an toàn
+                let numberToGive = 0;
+                let timestamp = new Date().toLocaleString('vi-VN');
+                
+                await db.runTransaction(async (transaction) => {
+                    const configRef = db.collection('config').doc('current');
+                    const configDoc = await transaction.get(configRef);
+                    let currentNumber = 100;
+                    if (configDoc.exists) {
+                        currentNumber = configDoc.data().currentNumber || 100;
+                    }
+                    numberToGive = currentNumber;
+                    // Tăng số tiếp theo
+                    transaction.set(configRef, { currentNumber: currentNumber + 1 });
+                    // Lưu lịch sử số
+                    const numbersRef = db.collection('numbers').doc(currentNumber.toString());
+                    transaction.set(numbersRef, {
+                        number: currentNumber,
+                        content: content,
+                        userName: fullName,
+                        timestamp: timestamp,
+                        dateTime: new Date().toISOString()
+                    });
+                });
+
+                // Sau khi transaction thành công, load lại dữ liệu
+                await excelSystem.loadNumbers();
+                await excelSystem.loadConfig();
+
+                // Hiển thị modal thành công
+                showUserGetNumberModal({
+                    number: numberToGive,
+                    content: content,
+                    userName: fullName,
+                    timestamp: timestamp
+                });
+
+                // Reset form
+                document.getElementById('publicGetNumberForm').reset();
+
+            } catch (error) {
+                console.error('Get number error:', error);
+                showError('Có lỗi xảy ra khi lấy số. Vui lòng thử lại!');
+            } finally {
+                // Re-enable submit button
+                submitBtn.disabled = false;
+                submitBtn.textContent = '🎫 Lấy Số Ngay';
+            }
+        }
+
+        // Show success modal (giống dashboard.html)
+        function showUserGetNumberModal(data) {
+            document.getElementById('modalNumber').textContent = data.number;
+            document.getElementById('modalContent').textContent = data.content;
+            document.getElementById('modalUser').textContent = data.userName;
+            document.getElementById('modalTime').textContent = data.timestamp;
+            document.getElementById('userGetNumberModal').classList.remove('hidden');
+        }
+
+        // Close user get number modal
+        function closeUserGetNumberModal() {
+            document.getElementById('userGetNumberModal').classList.add('hidden');
+        }
+
+        // Show error message
+        function showError(message) {
+            const errorElement = document.getElementById('modalErrorMessage');
+            errorElement.textContent = message;
+            document.getElementById('errorModal').classList.remove('hidden');
+        }
+
+        // Close modal
+        function closeModal() {
+            document.getElementById('errorModal').classList.add('hidden');
+        }
+
+        // Close modal when clicking outside
+        window.onclick = function(event) {
+            const userGetNumberModal = document.getElementById('userGetNumberModal');
+            const errorModal = document.getElementById('errorModal');
+
+            if (event.target === userGetNumberModal) {
+                userGetNumberModal.classList.add('hidden');
+            }
+            if (event.target === errorModal) {
+                errorModal.classList.add('hidden');
+            }
+        }
+
+        // Event listeners
+        document.addEventListener('DOMContentLoaded', function() {
+            init();
+
+            // Get number form
+            const getNumberForm = document.getElementById('publicGetNumberForm');
+            if (getNumberForm) {
+                getNumberForm.addEventListener('submit', handleGetNumber);
+            }
+        });
+    </script>
+</body>
+</html> 
